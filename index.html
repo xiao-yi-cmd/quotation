@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>外贸定制智能报价工作台 - B2B Quotation System</title>
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2canvas for exporting quote image -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .input-highlight {
+      background-color: #fefce8; /* light yellow like screenshot */
+      border-color: #fef08a;
+    }
+    .input-highlight:focus {
+      background-color: #ffffff;
+      border-color: #3b82f6;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #quotation-print-area, #quotation-print-area * {
+        visibility: visible;
+      }
+      #quotation-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        box-shadow: none !important;
+        border: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#f0f4f8] text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="bg-[#1e293b] text-white h-14 flex items-center justify-between px-5 sticky top-0 z-40 shadow-md">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 px-2 bg-white rounded flex items-center justify-center shadow overflow-hidden">
+          <img src="https://sc04.alicdn.com/kf/Abdd539fd9d894db59ab8d6f55a880a40Q.jpg" alt="Archino Logo" class="h-6 object-contain">
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold tracking-wide flex items-center gap-2">
+            <span id="header-company-name">阿尔基诺建材科技</span>
+            <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-normal border border-emerald-400/30">AI报价智能体 V2.0</span>
+          </h1>
+          <p class="text-[10px] text-slate-400">Archino Building Materials · 外贸定制核算与自动制单工作台</p>
+        </div>
+      </div>
+      <div class="hidden md:flex items-center text-xs text-slate-400 pl-4 border-l border-slate-700 space-x-1">
+        <span>业务工作台</span>
+        <span>/</span>
+        <span class="text-slate-200 font-medium">定制建材与工程报价</span>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button onclick="loadSampleData()" class="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition flex items-center gap-1">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        <span>载入示例</span>
+      </button>
+      <button onclick="resetForm()" class="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition flex items-center gap-1">
+        <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        <span>清空</span>
+      </button>
+      <button onclick="openQuotationModal()" class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-medium rounded shadow transition flex items-center gap-1">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+        <span>生成报价单</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE LAYOUT -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-52 bg-[#0f172a] text-slate-300 flex-shrink-0 flex flex-col justify-between hidden lg:flex select-none">
+      <div class="py-4">
+        <div class="px-4 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2">业务工作台</div>
+        <nav class="space-y-1 px-2">
+          <a href="#section-1" class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md bg-blue-600/20 text-blue-400 border border-blue-500/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>报价工作台</span>
+          </a>
+          <a href="#section-2" class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+            <span>产品与款式</span>
+          </a>
+          <a href="#section-3" class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span>材料与成本</span>
+          </a>
+          <a href="#section-4" class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>图稿与印刷</span>
+          </a>
+          <a href="#section-5" class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>成本与商务参数</span>
+          </a>
+        </nav>
+
+        <div class="px-4 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-6 mb-2">系统管理</div>
+        <nav class="space-y-1 px-2">
+          <button onclick="toggleInstructions()" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition text-left">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>系统说明与核算公式</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 text-xs text-slate-400">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-slate-300 font-medium">智能核算引擎</span>
+          <span class="text-emerald-400 text-[10px] flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 就绪
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-400">支持外贸 FOB/CIF/DDP 自动换汇与毛利测算</p>
+      </div>
+    </aside>
+
+    <!-- CENTER FORM AREA & RIGHT PREVIEW BAR -->
+    <main class="flex-1 flex overflow-y-auto">
+      
+      <!-- FORM INPUT COLUMN -->
+      <div class="flex-1 p-6 max-w-4xl space-y-5">
+        
+        <!-- TITLE BANNER -->
+        <div class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <span>新建定制报价单</span>
+                <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-normal border border-amber-300">示例数据/可直接修改</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-1">录入客户需求、产品规格、工序与各项成本参数，实时动态计算并生成外贸形式报价单。</p>
+            </div>
+            <button onclick="calculateQuote()" class="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-md shadow transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <span>实时重新核算</span>
+            </button>
+          </div>
+
+          <div class="mt-3 p-3 bg-amber-50 rounded border border-amber-200/80 text-xs text-amber-900 leading-relaxed flex items-start gap-2">
+            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+              <span class="font-medium">系统提示：</span>当前成本、损耗率、利润率、汇率、运费和交期均支持自由调整与公式联动，修改任意参数即刻自动更新右侧报价总额与明细。
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 1: 客户与项目 -->
+        <div id="section-1" class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm relative">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <span class="w-2 h-4 bg-blue-600 rounded-sm"></span>
+                一、客户与项目基本信息
+              </h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">支持从客户管理系统 (CRM) 实时自动联想与匹配建材工程档案</p>
+            </div>
+            <div id="crm-match-status" class="hidden text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5 font-medium">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span id="crm-match-text">已匹配 CRM 客户档案</span>
+              <button onclick="clearCrmMatch()" class="text-slate-400 hover:text-slate-600 text-xs ml-1">✕</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <!-- Customer Company Search with Autocomplete Dropdown -->
+            <div class="relative">
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-slate-700 font-medium">客户公司名称 <span class="text-rose-500 font-bold">*</span></label>
+                <span class="text-[10px] text-blue-600 flex items-center gap-0.5 cursor-pointer hover:underline" onclick="toggleCrmList()">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                  <span>CRM客户库</span>
+                </span>
+              </div>
+              <div class="relative">
+                <input type="text" id="cust-company" value="Metro Construction & Build Group" oninput="handleCustomerInput(this.value)" onfocus="handleCustomerInput(this.value)" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs pr-7" placeholder="输入客户名称，如 Metro, NIW, Alvin...">
+                <div class="absolute right-2 top-2.5 text-slate-400 pointer-events-none">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+
+              <!-- CRM Autocomplete Suggestions Dropdown -->
+              <div id="crm-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-30 max-h-56 overflow-y-auto hidden divide-y divide-slate-100">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">联系人 / 询盘编号</label>
+              <input type="text" id="cust-contact" value="David Miller / RFQ-US-8802" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：David Miller / RFQ-US-8802">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">客户国家 / 地区 <span class="text-rose-500 font-bold">*</span></label>
+              <input type="text" id="cust-country" value="United States" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：United States">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-slate-700 font-medium mb-1">项目名称 / 使用场景 <span class="text-rose-500 font-bold">*</span></label>
+              <input type="text" id="cust-project" value="商业幕墙UHPC挂板与外立面装饰构件" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：商业幕墙UHPC挂板与外立面装饰构件">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">最晚到货 / 交付日期</label>
+              <input type="date" id="cust-deadline" value="2026-12-20" class="w-full px-3 py-2 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+            </div>
+            <div class="md:col-span-3">
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-slate-700 font-medium">客户重点关注诉求与工程参数要求</label>
+                <button type="button" onclick="saveCurrentToCrm()" class="text-[10px] text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                  <span>保存客户信息至CRM库</span>
+                </button>
+              </div>
+              <input type="text" id="cust-focus" value="要求高抗折强度(≥18MPa)，抗冻融循环测试报告，海运防损木箱包装。" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="记录客户的工程要求、技术规范、价格预期等">
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: 产品分类与款式 -->
+        <div id="section-2" class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <span class="w-2 h-4 bg-blue-600 rounded-sm"></span>
+                二、产品分类与款式明细
+              </h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">支持通过国际站后台绑定店铺实时抓取/同步商品分类大类</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="syncStoreCategories()" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 rounded text-xs font-medium flex items-center gap-1.5 transition shadow-sm">
+                <svg class="w-3.5 h-3.5 text-emerald-600 animate-spin-hover" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <span>🔄 从绑定店铺抓取产品大类</span>
+              </button>
+              <button onclick="addProductItem()" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 rounded text-xs font-medium flex items-center gap-1 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>新增产品明细</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Store Sync Info Banner -->
+          <div id="store-sync-banner" class="mb-4 p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-md text-xs text-blue-900 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span><strong>已绑定国际站店铺：</strong>Henan Arkino Building Materials Technology Co., Ltd. (阿尔基诺建材)</span>
+            </div>
+            <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded border border-blue-300 font-mono">Alibaba.com 授权已同步</span>
+          </div>
+
+          <div id="product-items-container" class="space-y-3">
+            <!-- Product Item 1 -->
+            <div class="p-4 bg-slate-50/70 rounded-lg border border-slate-200 text-xs relative group" id="prod-item-1">
+              <div class="flex items-center justify-between mb-3">
+                <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 产品明细 1
+                </span>
+                <button onclick="removeProductItem(1)" class="text-slate-400 hover:text-rose-600 text-[11px] flex items-center gap-0.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  <span>删除</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                <div class="md:col-span-2">
+                  <label class="block text-slate-600 mb-1">产品名称 <span class="text-rose-500">*</span></label>
+                  <input type="text" id="prod-name-1" value="定制UHPC外墙装饰挂板" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">SKU 编号</label>
+                  <input type="text" id="prod-sku-1" value="AR-UHPC-2026-01" class="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1 flex items-center justify-between">
+                    <span>产品大类 (店铺同步)</span>
+                  </label>
+                  <select id="prod-cat-1" onchange="handleCategoryChange(this.value, 1)" class="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium text-slate-800">
+                    <option value="幕墙配件与挂板 (100005265)" selected>幕墙配件与UHPC挂板</option>
+                    <option value="建筑板材与复合板 (100005320)">建筑板材与复合板</option>
+                    <option value="门与工业车库门系统 (1305)">门与工业车库门系统</option>
+                    <option value="金属建材与铝单板 (1320)">金属建材与铝单板</option>
+                    <option value="活动房屋与钢结构 (31)">活动房屋与钢结构</option>
+                    <option value="隔热与防火耐火材料 (100005291)">隔热与防火耐火材料</option>
+                    <option value="砖石材料与砌筑砂浆 (100005264)">砖石材料与砌筑砂浆</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">定制路径</label>
+                  <select id="prod-path-1" class="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                    <option value="轻定制 (现模+表面涂装/打标)" selected>轻定制 (表面涂装/打标)</option>
+                    <option value="深度定制 (专版开模/结构定制)">深度定制 (专版开模/结构)</option>
+                    <option value="现货通版 (标准工程构件)">现货通版 (标准工程构件)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">采购数量 (件/平米) <span class="text-rose-500">*</span></label>
+                  <input type="number" id="prod-qty-1" value="500" min="1" oninput="syncTotalQty(); calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-semibold">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: 材料、规格、尺寸与工艺 -->
+        <div id="section-3" class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-2 h-4 bg-blue-600 rounded-sm"></span>
+              三、材料、规格、尺寸与工艺
+            </h3>
+            <span class="text-xs text-slate-400">建材物料与物理力学参数标准</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">外层材料 / 基材 <span class="text-rose-500">*</span></label>
+              <input type="text" id="mat-outer" value="超高性能混凝土 (UHPC)" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：超高性能混凝土 (UHPC) / 优质铝合金 / 镀锌彩钢">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">增强 / 保温芯层</label>
+              <input type="text" id="mat-middle" value="抗裂不锈钢纤维" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：抗裂不锈钢纤维 / 阻燃聚氨酯 / 岩棉">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">内层材料 / 防护层</label>
+              <input type="text" id="mat-inner" value="纳米防水自洁涂层" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：纳米防水自洁涂层 / 铝箔反射层 / 防腐底漆">
+            </div>
+
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">材料厚度 / 强度指标</label>
+              <input type="text" id="mat-weight" value="抗折强度 ≥18MPa / 密度 2450 kg/m³" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：抗折强度 ≥18MPa / 容重">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">板型 / 安装节点结构</label>
+              <input type="text" id="mat-structure" value="背栓式干挂结构，预埋一体件" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：背栓式干挂结构 / 密拼企口">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">尺寸公差</label>
+              <input type="text" id="mat-tolerance" value="±1.5mm" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：±1.5mm">
+            </div>
+
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">成品外尺寸 (长×宽×高/厚) <span class="text-rose-500">*</span></label>
+              <input type="text" id="spec-outer-size" value="1200×600×25mm" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：1200×600×25mm">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">有效安装跨距 / 内腔</label>
+              <input type="text" id="spec-inner-size" value="有效安装跨距 1150×550mm" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：有效安装跨距 1150×550mm">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">龙骨适配 / 安装基座</label>
+              <input type="text" id="spec-holder" value="外立面幕墙龙骨挂接 (横向角钢龙骨)" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：横向角钢龙骨 / 预埋槽钢">
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-slate-700 font-medium mb-1">制作工序与工艺要求 <span class="text-rose-500">*</span></label>
+              <input type="text" id="spec-craft" value="模具浇筑、高温蒸汽养护、数控精修切边、纳米防渗喷涂" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：模具浇筑、高温蒸汽养护、数控精修切边">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">特殊结构 / 五金配件</label>
+              <input type="text" id="spec-accessary" value="304不锈钢背栓、专属铝合金挂件、耐候密封胶条" oninput="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="例如：304不锈钢背栓、专用连接件">
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: 设计图稿与印刷/表面处理要求 -->
+        <div id="section-4" class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-2 h-4 bg-blue-600 rounded-sm"></span>
+              四、工程图纸上传与表面处理要求
+            </h3>
+            <span class="text-xs text-slate-400">表面涂装工艺与工程深化版本</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="md:col-span-2">
+              <label class="block text-slate-700 font-medium mb-1">上传客户工程图纸 / CAD / 效果图</label>
+              <div class="flex items-center gap-2">
+                <input type="file" id="art-file" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 rounded p-1 bg-white">
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">支持 DWG, DXF, PDF, STEP, PNG 格式，本地即时解析。</p>
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">图纸版本编号 <span class="text-rose-500">*</span></label>
+              <input type="text" id="art-version" value="DWG-AR-2026-001" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+            </div>
+
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">表面处理 / 涂装工艺</label>
+              <select id="art-process" onchange="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs bg-white">
+                <option value="氟碳PVDF喷涂 (Fluorocarbon)" selected>氟碳PVDF喷涂 (Fluorocarbon)</option>
+                <option value="仿石肌理喷砂 (Textured Sandblasting)">仿石肌理喷砂 (Textured Sandblasting)</option>
+                <option value="静电粉末喷涂 (Powder Coating)">静电粉末喷涂 (Powder Coating)</option>
+                <option value="阳极氧化处理 (Anodizing)">阳极氧化处理 (Anodizing)</option>
+                <option value="木纹/石纹热转印 (Heat Transfer)">木纹/石纹热转印 (Heat Transfer)</option>
+                <option value="丝网印字标 (Silk Screen Logo)">丝网印字标 (Silk Screen Logo)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">涂装/处理面数</label>
+              <select id="art-sides" onchange="calculateQuote()" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs bg-white">
+                <option value="正面及可视侧边" selected>正面及可视侧边</option>
+                <option value="全表面六面喷涂">全表面六面喷涂</option>
+                <option value="单面主要展示面">单面主要展示面</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">色彩与光泽类型</label>
+              <select id="art-color-type" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs bg-white">
+                <option value="RAL标准工程色卡" selected>RAL标准工程色卡</option>
+                <option value="天然砂岩质感原色">天然砂岩质感原色</option>
+                <option value="Pantone建筑专色">Pantone建筑专色</option>
+                <option value="定制仿大理石纹理">定制仿大理石纹理</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">涂装部位</label>
+              <input type="text" id="art-position" value="正面大面及外露包边" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">表面处理面积</label>
+              <input type="text" id="art-area" value="1200×600mm 全板面" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">颜色标准</label>
+              <input type="text" id="art-color-std" value="以工程确认色卡/封样标准块为准" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-slate-700 font-medium mb-1">图纸特殊说明</label>
+              <input type="text" id="art-notes" value="附大样节点深化CAD图纸，提供第三方力学抗风压及耐冻融实验检测报告" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="图纸技术要求、第三方检测、抗风压等级等">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-medium mb-1">生产前确认方式</label>
+              <select id="art-confirm-type" class="w-full px-3 py-2 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs bg-white">
+                <option value="大货前1:1实物样品及工程图纸书面确认" selected>大货前1:1实物样品及工程图纸书面确认</option>
+                <option value="数码效果图及CAD节点签名确认">数码效果图及CAD节点签名确认</option>
+                <option value="视频连线实物样品验收确认">视频连线实物样品验收确认</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: 报价成本与商务参数 -->
+        <div id="section-5" class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <span class="w-2 h-4 bg-emerald-600 rounded-sm"></span>
+                五、报价成本与商务参数核算
+              </h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">黄色输入框内数字为单价或费用参数，支持随时调整并一键重新计算。</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="restoreDefaultParams()" class="text-xs text-slate-500 hover:text-slate-800 underline">
+                恢复默认演示参数
+              </button>
+            </div>
+          </div>
+
+          <!-- Cost Table / Grid -->
+          <div class="space-y-4 text-xs">
+            
+            <!-- Row 1: Variable unit cost -->
+            <div class="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200">
+              <div class="text-[11px] font-semibold text-slate-600 mb-2 flex items-center justify-between">
+                <span>1. 单件/平米变动成本构成 (CNY / 单位)</span>
+                <span class="text-blue-600 font-mono text-xs">单件/平米小计: <span id="label-unit-raw-cost" class="font-bold">87.00</span> CNY</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                <div>
+                  <label class="block text-slate-600 mb-1">采购数量 (件/平米) <span class="text-rose-500">*</span></label>
+                  <input type="number" id="cost-qty" value="500" min="1" oninput="syncProdQty(); calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-bold text-slate-800">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">基材成本/单位</label>
+                  <input type="number" step="0.01" id="cost-material" value="45.00" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">加工成型/单位</label>
+                  <input type="number" step="0.01" id="cost-labor" value="25.00" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">表面涂装/单位</label>
+                  <input type="number" step="0.01" id="cost-print" value="10.00" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">防损包装/单位</label>
+                  <input type="number" step="0.01" id="cost-package" value="5.00" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">工程质检/单位</label>
+                  <input type="number" step="0.01" id="cost-qc" value="2.00" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Fixed cost and wastage -->
+            <div class="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200">
+              <div class="text-[11px] font-semibold text-slate-600 mb-2 flex items-center justify-between">
+                <span>2. 工程损耗与开模/CAD深化一次性费用 (CNY)</span>
+                <span class="text-blue-600 font-mono text-xs">固定费用小计: <span id="label-fixed-cost" class="font-bold">1500.00</span> CNY</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                <div>
+                  <label class="block text-slate-600 mb-1">工程损耗率 (%)</label>
+                  <input type="number" step="0.1" id="cost-loss-rate" value="5" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">打样/封样费 (CNY)</label>
+                  <input type="number" step="1" id="cost-sample" value="500" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">开模 / 模具费 (CNY)</label>
+                  <input type="number" step="1" id="cost-plate" value="1000" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">第三方探伤/检测费 (CNY)</label>
+                  <input type="number" step="1" id="cost-mold" value="0" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">其他一次性费用 (CNY)</label>
+                  <input type="number" step="1" id="cost-other-fixed" value="0" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: Commercial parameters, Shipping, Margin, FX -->
+            <div class="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200">
+              <div class="text-[11px] font-semibold text-slate-600 mb-2">3. 商务参数、运费、利润率与汇率换算</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-3">
+                <div>
+                  <label class="block text-slate-600 mb-1">销售毛利率 (%) <span class="text-rose-500">*</span></label>
+                  <input type="number" step="0.5" id="biz-margin-rate" value="28" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-bold text-blue-700">
+                  <span class="text-[10px] text-slate-400 mt-0.5 block">公式：总额 = 总成本 ÷ (1 - 利润率)</span>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">报价币种</label>
+                  <select id="biz-currency" onchange="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs bg-white font-semibold">
+                    <option value="USD" selected>USD (美元 $)</option>
+                    <option value="CNY">CNY (人民币 ¥)</option>
+                    <option value="EUR">EUR (欧元 €)</option>
+                    <option value="GBP">GBP (英镑 £)</option>
+                    <option value="AUD">AUD (澳元 A$)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">实时汇率 (CNY / 币种)</label>
+                  <input type="number" step="0.01" id="biz-fx-rate" value="7.20" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                  <span class="text-[10px] text-slate-400 mt-0.5 block">例如：1 USD = 7.20 CNY</span>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">海运/港杂运费 (CNY)</label>
+                  <input type="number" step="10" id="biz-shipping-fee" value="4500" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium">
+                </div>
+
+                <div>
+                  <label class="block text-slate-600 mb-1">税费 / 其他贸易费 (CNY)</label>
+                  <input type="number" step="10" id="biz-tax-fee" value="0" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">贸易条款 (Incoterms)</label>
+                  <select id="biz-incoterm" onchange="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs bg-white">
+                    <option value="CIF" selected>CIF (到岸包含海运保费)</option>
+                    <option value="FOB">FOB (离岸交货价)</option>
+                    <option value="EXW">EXW (工厂出厂价)</option>
+                    <option value="DDP">DDP (完税后交货到门)</option>
+                    <option value="DAP">DAP (目的地交货)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">常规预计交期</label>
+                  <input type="text" id="biz-lead-time" value="30天" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1">报价单有效期</label>
+                  <input type="text" id="biz-valid-days" value="15天" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+
+                <div class="col-span-2 sm:col-span-4">
+                  <label class="block text-slate-600 mb-1">付款方式及条款</label>
+                  <input type="text" id="biz-payment-term" value="T/T 30%定金，出厂验货合格后见提单副本付70%尾款" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom calculate button bar -->
+          <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <button onclick="calculateQuote()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md shadow-sm transition flex items-center gap-2 text-xs">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+              <span>重新计算报价总额</span>
+            </button>
+            <div class="text-right text-xs">
+              <span class="text-slate-500">核算成本总计：</span>
+              <span id="label-bottom-cost" class="font-mono font-bold text-slate-700">CNY 50,625.00</span>
+              <span class="mx-2 text-slate-300">|</span>
+              <span class="text-slate-500">最终报价总额：</span>
+              <span id="label-bottom-quote" class="font-mono font-bold text-blue-600 text-sm">USD 9,769.53</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT FLOATING PREVIEW & ACTION PANEL -->
+      <div class="w-80 lg:w-96 bg-white border-l border-slate-200 p-5 flex flex-col justify-between overflow-y-auto hidden md:flex flex-shrink-0">
+        
+        <div class="space-y-4 text-xs">
+          <!-- Summary Header -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+              <span>实时报价核算摘要</span>
+            </div>
+            <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">实时同步中</span>
+          </div>
+
+          <!-- Total Grand Price Card -->
+          <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-sm">
+            <div class="text-slate-400 text-[11px] mb-1">报价总额 (Grand Total)</div>
+            <div class="flex items-baseline justify-between">
+              <span id="summary-currency-sym" class="text-sm font-medium text-blue-300">USD</span>
+              <span id="summary-total-quote" class="text-2xl font-bold font-mono tracking-tight text-white">685.19</span>
+            </div>
+            <div class="mt-2 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-300">
+              <span>折合单价 (Unit Price):</span>
+              <span id="summary-unit-quote" class="font-mono font-semibold text-emerald-300">USD 0.69 / 个</span>
+            </div>
+          </div>
+
+          <!-- Product Spec Summary Card -->
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 space-y-2">
+            <div class="font-semibold text-slate-700 text-[11px] flex items-center justify-between">
+              <span>产品与工程规格概要</span>
+              <span id="summary-qty" class="text-slate-500 font-normal">500 件/平米</span>
+            </div>
+            <div class="text-slate-600 space-y-1 text-[11px]">
+              <div class="flex justify-between"><span class="text-slate-400">产品名称:</span> <span id="summary-prod-name" class="font-medium text-slate-800">定制UHPC外墙装饰挂板</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">工程尺寸:</span> <span id="summary-size" class="text-slate-700">1200×600×25mm</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">材质配方:</span> <span id="summary-material" class="text-slate-700">UHPC/不锈钢纤维/纳米自洁层</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">涂装处理:</span> <span id="summary-print" class="text-slate-700">氟碳PVDF喷涂 RAL标准色</span></div>
+            </div>
+          </div>
+
+          <!-- Cost Composition Details -->
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 space-y-2">
+            <div class="font-semibold text-slate-700 text-[11px] flex items-center justify-between">
+              <span>成本构成明细 (CNY)</span>
+              <span id="summary-cost-total" class="font-mono font-bold text-slate-800">¥50,625.00</span>
+            </div>
+            <div class="text-slate-600 space-y-1 text-[11px] font-mono">
+              <div class="flex justify-between"><span class="text-slate-400">基材成本:</span> <span id="c-mat">CNY 22,500.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">加工成型:</span> <span id="c-labor">CNY 12,500.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">表面涂装:</span> <span id="c-print">CNY 5,000.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">木箱包装质检:</span> <span id="c-pack">CNY 3,500.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">工程损耗(5%):</span> <span id="c-loss">CNY 2,175.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">开模/打样/CAD:</span> <span id="c-fixed">CNY 1,500.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">海运/港杂运费:</span> <span id="c-ship">CNY 4,500.00</span></div>
+            </div>
+          </div>
+
+          <!-- Terms Summary -->
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 space-y-1.5 text-[11px]">
+            <div class="font-semibold text-slate-700 mb-1">商务与交付条款</div>
+            <div class="flex justify-between"><span class="text-slate-400">贸易条款:</span> <span id="summary-incoterm" class="font-medium text-slate-800">CIF</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">预计交期:</span> <span id="summary-lead-time" class="text-slate-700">30天</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">报价有效期:</span> <span id="summary-validity" class="text-slate-700">15天</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">付款方式:</span> <span id="summary-payment" class="text-slate-700 truncate max-w-[170px]" title="T/T 30%定金">T/T 30%定金，见提单副本付70%</span></div>
+          </div>
+
+        </div>
+
+        <!-- Action Buttons in Right Panel -->
+        <div class="mt-4 pt-3 border-t border-slate-200 space-y-2">
+          <button onclick="copyCustomerQuoteText()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-md shadow transition flex items-center justify-center gap-1.5 text-xs">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+            <span>一键复制客户报价文案</span>
+          </button>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="openQuotationModal()" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded border border-slate-300 transition flex items-center justify-center gap-1 text-xs">
+              <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              <span>预览报价单</span>
+            </button>
+            <button onclick="downloadQuoteImageDirect()" class="py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded border border-emerald-300 transition flex items-center justify-center gap-1 text-xs">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>下载报价图片</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- POPUP MODAL: FORMAL B2B QUOTATION SHEET -->
+  <div id="quotation-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-fade-in border border-slate-200">
+      
+      <!-- Modal Header -->
+      <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <span class="font-bold text-sm">正式外贸报价方案 / FORMAL QUOTATION</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="printQuotation()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 rounded transition flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            <span>打印 / 存为PDF</span>
+          </button>
+          <button onclick="downloadQuoteImageFromModal()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-xs text-white rounded transition flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>导出高清图片</span>
+          </button>
+          <button onclick="closeQuotationModal()" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
+        </div>
+      </div>
+
+      <!-- Printable Area -->
+      <div class="p-6 overflow-y-auto flex-1 bg-slate-50">
+        <div id="quotation-print-area" class="bg-white p-8 rounded-lg shadow-sm border border-slate-200 text-xs text-slate-800 max-w-2xl mx-auto space-y-6">
+          
+          <!-- Sheet Header -->
+          <div class="border-b-2 border-slate-800 pb-4 flex justify-between items-start">
+            <div class="flex items-center gap-3">
+              <div class="h-10 px-2 py-1 bg-white border border-slate-200 rounded flex items-center justify-center">
+                <img src="https://sc04.alicdn.com/kf/Abdd539fd9d894db59ab8d6f55a880a40Q.jpg" alt="Archino Logo" class="h-7 object-contain">
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 tracking-tight" id="modal-company-title">阿尔基诺建材科技</h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">ARCHINO BUILDING MATERIALS TECHNOLOGY · 官方形式报价单 / OFFICIAL QUOTATION</p>
+              </div>
+            </div>
+            <div class="text-right text-[11px] text-slate-500">
+              <div>报价日期: <span id="modal-quote-date" class="font-medium text-slate-800">2026-10-07</span></div>
+              <div>报价单号: <span id="modal-quote-no" class="font-medium text-slate-800">QT-20261007-01</span></div>
+            </div>
+          </div>
+
+          <!-- Client & Project Info -->
+          <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded border border-slate-100 text-[11px]">
+            <div class="space-y-1">
+              <div><span class="text-slate-400">客户公司:</span> <span id="m-cust-comp" class="font-semibold text-slate-800">Metro Construction & Build Group</span></div>
+              <div><span class="text-slate-400">联系人/询盘号:</span> <span id="m-cust-contact" class="text-slate-700">David Miller / RFQ-US-8802</span></div>
+              <div><span class="text-slate-400">项目/场景:</span> <span id="m-cust-proj" class="text-slate-700">商业幕墙UHPC挂板与外立面装饰构件</span></div>
+            </div>
+            <div class="space-y-1 text-right sm:text-left">
+              <div><span class="text-slate-400">目的国家:</span> <span id="m-cust-country" class="font-semibold text-slate-800">United States</span></div>
+              <div><span class="text-slate-400">报价币种:</span> <span id="m-currency" class="font-semibold text-blue-600">USD</span></div>
+              <div><span class="text-slate-400">贸易条款:</span> <span id="m-incoterm" class="font-semibold text-slate-800">CIF</span></div>
+            </div>
+          </div>
+
+          <!-- Product & Price Table -->
+          <div>
+            <div class="font-bold text-slate-800 mb-2">一、产品与工程报价明细 / Itemized Specifications</div>
+            <table class="w-full text-left border-collapse border border-slate-200">
+              <thead class="bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                <tr>
+                  <th class="p-2 border border-slate-200">产品描述</th>
+                  <th class="p-2 border border-slate-200">规格 / 工艺 / 材质配方</th>
+                  <th class="p-2 border border-slate-200 text-center">数量</th>
+                  <th class="p-2 border border-slate-200 text-right">单价 (<span class="currency-tag">USD</span>)</th>
+                  <th class="p-2 border border-slate-200 text-right">总价 (<span class="currency-tag">USD</span>)</th>
+                </tr>
+              </thead>
+              <tbody class="text-[11px]" id="modal-product-tbody">
+                <tr>
+                  <td class="p-2 border border-slate-200 font-medium">定制UHPC外墙装饰挂板<br><span class="text-[10px] text-slate-400">工程定制 / AR-UHPC-2026-01</span></td>
+                  <td class="p-2 border border-slate-200 text-slate-600">1200×600×25mm; 超高性能混凝土(UHPC)+不锈钢纤维; 氟碳PVDF喷涂</td>
+                  <td class="p-2 border border-slate-200 text-center font-semibold">500</td>
+                  <td class="p-2 border border-slate-200 text-right font-mono" id="m-unit-price">USD 19.54</td>
+                  <td class="p-2 border border-slate-200 text-right font-mono font-bold" id="m-subtotal-price">USD 9,769.53</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Grand Total Banner -->
+          <div class="bg-slate-900 text-white p-3.5 rounded flex items-center justify-between">
+            <span class="font-bold text-xs">报价总额 (GRAND TOTAL)</span>
+            <span id="m-grand-total" class="font-mono text-base font-bold text-emerald-400">USD 9,769.53</span>
+          </div>
+
+          <!-- Commercial Conditions -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded border border-slate-100 text-[11px]">
+            <div>
+              <span class="text-slate-400 block">贸易条款</span>
+              <span id="m-cond-incoterm" class="font-semibold text-slate-800">CIF</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">预计交期</span>
+              <span id="m-cond-lead" class="font-semibold text-slate-800">30天</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">报价有效期</span>
+              <span id="m-cond-valid" class="font-semibold text-slate-800">15天</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">付款方式</span>
+              <span id="m-cond-pay" class="font-semibold text-slate-800 truncate block">T/T 30%定金</span>
+            </div>
+          </div>
+
+          <!-- Cost Breakdown Structure (Transparent Breakdown) -->
+          <div>
+            <div class="font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+              <span>二、内部工程费用核算构成 (Cost Structure)</span>
+              <span class="text-[10px] text-slate-400 font-normal">基于本批次建材成本模型</span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-1 bg-slate-50 p-3 rounded border border-slate-100 text-[11px] font-mono text-slate-600">
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>基材成本:</span> <span id="m-c-mat">CNY 22,500.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>加工成型成本:</span> <span id="m-c-labor">CNY 12,500.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>表面喷涂/涂装:</span> <span id="m-c-print">CNY 5,000.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>防损木箱及质检:</span> <span id="m-c-pack">CNY 3,500.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>工程损耗预留:</span> <span id="m-c-loss">CNY 2,175.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>开模/CAD深化固定费:</span> <span id="m-c-fixed">CNY 1,500.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5"><span>海运/港杂运费:</span> <span id="m-c-ship">CNY 4,500.00</span></div>
+              <div class="flex justify-between border-b border-dashed border-slate-200 py-0.5 font-bold text-slate-800"><span>成本合计:</span> <span id="m-c-total">CNY 50,625.00</span></div>
+            </div>
+          </div>
+
+          <!-- Notes & Stamp -->
+          <div class="border-t border-slate-200 pt-3 text-[10px] text-slate-500 space-y-1">
+            <div class="font-semibold text-slate-700 text-[11px]">阿尔基诺工程报价备注说明：</div>
+            <p id="m-quote-remarks">1. 规格：1200×600×25mm；材料：超高性能混凝土 (UHPC)+抗裂不锈钢纤维+纳米自洁涂层；图号：DWG-AR-2026-001。含304不锈钢背栓配件与熏蒸防损木箱包装。<br>2. 本报价单为正式商务核算草案，最终价格以双方签订的形式发票（Proforma Invoice）及大货工程深化图纸确认书为准。</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-white px-6 py-3 border-t border-slate-200 flex items-center justify-between flex-shrink-0">
+        <span class="text-xs text-slate-500">提示：支持直接点击“打印/存为PDF”或“导出高清图片”发送给客户。</span>
+        <button onclick="closeQuotationModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium rounded transition">
+          关闭预览
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS MODAL -->
+  <div id="instructions-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 text-xs text-slate-700 space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-bold text-sm text-slate-800">系统核算公式与使用说明</h3>
+        <button onclick="toggleInstructions()" class="text-slate-400 hover:text-slate-600 text-base">✕</button>
+      </div>
+      <div class="space-y-2 leading-relaxed">
+        <p class="font-semibold text-slate-800">1. 核心成本核算公式：</p>
+        <div class="bg-slate-100 p-2.5 rounded font-mono text-[11px] text-slate-700">
+          • 单件变动成本 = (材料 + 加工 + 印刷 + 包装 + 质检) × (1 + 损耗率%)<br>
+          • 变动总成本 = 单件变动成本 × 数量<br>
+          • 生产总成本 = 变动总成本 + 固定费用(打样/制版/模具/样品)<br>
+          • 综合出厂销售额 = (生产总成本 + 运费 + 关税/贸易费) ÷ (1 - 销售毛利率%)<br>
+          • 最终外币总报价 = 综合出厂销售额(CNY) ÷ 汇率
+        </div>
+        <p class="font-semibold text-slate-800 mt-2">2. 交付与导出特性：</p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li><strong>一键复制文案</strong>：自动生成可直接发送给买家或在阿里巴巴国际站、邮件中回复的标准英文/中文报价文本。</li>
+          <li><strong>打印与PDF保存</strong>：内置精准外贸排版CSS，浏览器直接 Ctrl+P 或点击打印即转标准PDF。</li>
+          <li><strong>高清图片导出</strong>：集成前端 Canvas 引擎，无需后端服务器，一键生成高清 PNG 报价卡片。</li>
+        </ul>
+      </div>
+      <div class="text-right pt-2 border-t">
+        <button onclick="toggleInstructions()" class="px-4 py-1.5 bg-blue-600 text-white rounded text-xs">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    <span id="toast-msg">操作成功</span>
+  </div>
+
+  <!-- CORE LOGIC & CALCULATION ENGINE -->
+  <script>
+    let productItemCounter = 1;
+
+    // Toast helper
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      toastMsg.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // Synchronize Qty between Sections
+    function syncTotalQty() {
+      const pQty = document.getElementById('prod-qty-1');
+      if (pQty) {
+        document.getElementById('cost-qty').value = pQty.value;
+      }
+    }
+    function syncProdQty() {
+      const cQty = document.getElementById('cost-qty');
+      const pQty = document.getElementById('prod-qty-1');
+      if (cQty && pQty) {
+        pQty.value = cQty.value;
+      }
+    }
+
+    // Calculation Engine
+    function calculateQuote() {
+      // 1. Gather Input Values
+      const qty = parseFloat(document.getElementById('cost-qty').value) || 1;
+      const mat = parseFloat(document.getElementById('cost-material').value) || 0;
+      const labor = parseFloat(document.getElementById('cost-labor').value) || 0;
+      const print = parseFloat(document.getElementById('cost-print').value) || 0;
+      const pack = parseFloat(document.getElementById('cost-package').value) || 0;
+      const qc = parseFloat(document.getElementById('cost-qc').value) || 0;
+      const lossRate = parseFloat(document.getElementById('cost-loss-rate').value) || 0;
+
+      const sampleFee = parseFloat(document.getElementById('cost-sample').value) || 0;
+      const plateFee = parseFloat(document.getElementById('cost-plate').value) || 0;
+      const moldFee = parseFloat(document.getElementById('cost-mold').value) || 0;
+      const otherFixed = parseFloat(document.getElementById('cost-other-fixed').value) || 0;
+
+      const marginRate = parseFloat(document.getElementById('biz-margin-rate').value) || 0;
+      const currency = document.getElementById('biz-currency').value;
+      const fxRate = parseFloat(document.getElementById('biz-fx-rate').value) || 1;
+      const shippingFee = parseFloat(document.getElementById('biz-shipping-fee').value) || 0;
+      const taxFee = parseFloat(document.getElementById('biz-tax-fee').value) || 0;
+
+      // 2. Compute Costs in CNY
+      const rawUnitCost = mat + labor + print + pack + qc;
+      const unitLoss = rawUnitCost * (lossRate / 100);
+      const unitWithLoss = rawUnitCost + unitLoss;
+
+      const totalMat = mat * qty;
+      const totalLabor = labor * qty;
+      const totalPrint = print * qty;
+      const totalPackQc = (pack + qc) * qty;
+      const totalLoss = unitLoss * qty;
+      const totalFixed = sampleFee + plateFee + moldFee + otherFixed;
+
+      const totalProductionCost = (unitWithLoss * qty) + totalFixed;
+      const grandTotalCostCNY = totalProductionCost + shippingFee + taxFee;
+
+      // 3. Margin & Quote Total in Target Currency
+      const marginDecimal = marginRate / 100;
+      let totalQuoteCNY = 0;
+      if (marginDecimal < 0.99) {
+        totalQuoteCNY = grandTotalCostCNY / (1 - marginDecimal);
+      } else {
+        totalQuoteCNY = grandTotalCostCNY * (1 + marginDecimal);
+      }
+
+      const totalQuoteTargetCurr = totalQuoteCNY / (fxRate || 1);
+      const unitQuoteTargetCurr = totalQuoteTargetCurr / qty;
+
+      // 4. Update UI labels
+      document.getElementById('label-unit-raw-cost').textContent = rawUnitCost.toFixed(2);
+      document.getElementById('label-fixed-cost').textContent = totalFixed.toFixed(2);
+      document.getElementById('label-bottom-cost').textContent = `CNY ${grandTotalCostCNY.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('label-bottom-quote').textContent = `${currency} ${totalQuoteTargetCurr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      // Update Right Summary Panel
+      document.getElementById('summary-currency-sym').textContent = currency;
+      document.getElementById('summary-total-quote').textContent = totalQuoteTargetCurr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('summary-unit-quote').textContent = `${currency} ${unitQuoteTargetCurr.toFixed(2)} / 个`;
+      document.getElementById('summary-qty').textContent = `${qty.toLocaleString()} 个`;
+      
+      const prodName = document.getElementById('prod-name-1') ? document.getElementById('prod-name-1').value : '定制产品';
+      document.getElementById('summary-prod-name').textContent = prodName;
+      document.getElementById('summary-size').textContent = document.getElementById('spec-outer-size').value || '-';
+      document.getElementById('summary-material').textContent = `${document.getElementById('mat-outer').value}/${document.getElementById('mat-middle').value}/${document.getElementById('mat-inner').value}`;
+      document.getElementById('summary-print').textContent = `${document.getElementById('art-process').value.split(' ')[0]} ${document.getElementById('art-sides').value.split(' ')[0]} ${document.getElementById('art-color-type').value.split(' ')[0]}`;
+
+      // Cost details
+      document.getElementById('summary-cost-total').textContent = `¥${grandTotalCostCNY.toFixed(2)}`;
+      document.getElementById('c-mat').textContent = `CNY ${totalMat.toFixed(2)}`;
+      document.getElementById('c-labor').textContent = `CNY ${totalLabor.toFixed(2)}`;
+      document.getElementById('c-print').textContent = `CNY ${totalPrint.toFixed(2)}`;
+      document.getElementById('c-pack').textContent = `CNY ${totalPackQc.toFixed(2)}`;
+      document.getElementById('c-loss').textContent = `CNY ${totalLoss.toFixed(2)}`;
+      document.getElementById('c-fixed').textContent = `CNY ${totalFixed.toFixed(2)}`;
+      document.getElementById('c-ship').textContent = `CNY ${(shippingFee + taxFee).toFixed(2)}`;
+
+      // Terms
+      document.getElementById('summary-incoterm').textContent = document.getElementById('biz-incoterm').value;
+      document.getElementById('summary-lead-time').textContent = document.getElementById('biz-lead-time').value;
+      document.getElementById('summary-validity').textContent = document.getElementById('biz-valid-days').value;
+      document.getElementById('summary-payment').textContent = document.getElementById('biz-payment-term').value;
+
+      // Update Currency Tags in modal
+      document.querySelectorAll('.currency-tag').forEach(el => el.textContent = currency);
+
+      // Return calculated package
+      return {
+        qty, currency, fxRate, marginRate,
+        rawUnitCost, totalProductionCost, grandTotalCostCNY,
+        totalQuoteTargetCurr, unitQuoteTargetCurr,
+        totalMat, totalLabor, totalPrint, totalPackQc, totalLoss, totalFixed, shippingFee, taxFee
+      };
+    }
+
+    // Modal Control
+    function openQuotationModal() {
+      const calc = calculateQuote();
+      
+      // Update Modal DOM
+      document.getElementById('m-cust-comp').textContent = document.getElementById('cust-company').value || '-';
+      document.getElementById('m-cust-contact').textContent = document.getElementById('cust-contact').value || '-';
+      document.getElementById('m-cust-proj').textContent = document.getElementById('cust-project').value || '-';
+      document.getElementById('m-cust-country').textContent = document.getElementById('cust-country').value || '-';
+      document.getElementById('m-currency').textContent = calc.currency;
+      document.getElementById('m-incoterm').textContent = document.getElementById('biz-incoterm').value;
+
+      document.getElementById('m-unit-price').textContent = `${calc.currency} ${calc.unitQuoteTargetCurr.toFixed(2)}`;
+      document.getElementById('m-subtotal-price').textContent = `${calc.currency} ${calc.totalQuoteTargetCurr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('m-grand-total').textContent = `${calc.currency} ${calc.totalQuoteTargetCurr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      document.getElementById('m-cond-incoterm').textContent = document.getElementById('biz-incoterm').value;
+      document.getElementById('m-cond-lead').textContent = document.getElementById('biz-lead-time').value;
+      document.getElementById('m-cond-valid').textContent = document.getElementById('biz-valid-days').value;
+      document.getElementById('m-cond-pay').textContent = document.getElementById('biz-payment-term').value;
+
+      // Cost breakdowns
+      document.getElementById('m-c-mat').textContent = `CNY ${calc.totalMat.toFixed(2)}`;
+      document.getElementById('m-c-labor').textContent = `CNY ${calc.totalLabor.toFixed(2)}`;
+      document.getElementById('m-c-print').textContent = `CNY ${calc.totalPrint.toFixed(2)}`;
+      document.getElementById('m-c-pack').textContent = `CNY ${calc.totalPackQc.toFixed(2)}`;
+      document.getElementById('m-c-loss').textContent = `CNY ${calc.totalLoss.toFixed(2)}`;
+      document.getElementById('m-c-fixed').textContent = `CNY ${calc.totalFixed.toFixed(2)}`;
+      document.getElementById('m-c-ship').textContent = `CNY ${(calc.shippingFee + calc.taxFee).toFixed(2)}`;
+      document.getElementById('m-c-total').textContent = `CNY ${calc.grandTotalCostCNY.toFixed(2)}`;
+
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('modal-quote-date').textContent = today;
+      document.getElementById('modal-quote-no').textContent = `QT-${today.replace(/-/g, '')}-01`;
+
+      document.getElementById('quotation-modal').classList.remove('hidden');
+    }
+
+    function closeQuotationModal() {
+      document.getElementById('quotation-modal').classList.add('hidden');
+    }
+
+    function toggleInstructions() {
+      const modal = document.getElementById('instructions-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    function printQuotation() {
+      window.print();
+    }
+
+    // Direct Image Download using html2canvas
+    function downloadQuoteImageDirect() {
+      openQuotationModal();
+      setTimeout(() => {
+        downloadQuoteImageFromModal();
+      }, 300);
+    }
+
+    function downloadQuoteImageFromModal() {
+      const printArea = document.getElementById('quotation-print-area');
+      showToast('正在渲染高清报价单图片...');
+      html2canvas(printArea, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `Quotation_${document.getElementById('cust-company').value || 'Customer'}_${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('报价单图片已下载！');
+      }).catch(err => {
+        console.error(err);
+        showToast('生成图片失败，请尝试浏览器打印保存为PDF');
+      });
+    }
+
+    // Copy formatted B2B quote text to clipboard
+    function copyCustomerQuoteText() {
+      const calc = calculateQuote();
+      const comp = document.getElementById('cust-company').value;
+      const contact = document.getElementById('cust-contact').value;
+      const proj = document.getElementById('cust-project').value;
+      const size = document.getElementById('spec-outer-size').value;
+      const mat = `${document.getElementById('mat-outer').value} + ${document.getElementById('mat-middle').value} + ${document.getElementById('mat-inner').value}`;
+      const print = `${document.getElementById('art-process').value} (${document.getElementById('art-sides').value})`;
+      const incoterm = document.getElementById('biz-incoterm').value;
+      const lead = document.getElementById('biz-lead-time').value;
+      const validity = document.getElementById('biz-valid-days').value;
+      const pay = document.getElementById('biz-payment-term').value;
+
+      const quoteText = `Dear ${contact.split('/')[0].trim() || 'Sir/Madam'},
+
+Thank you for your inquiry regarding ${proj}. On behalf of Archino Building Materials Technology Co., Ltd. (阿尔基诺建材科技), we are pleased to provide our formal quotation as follows:
+
+==================================================
+【QUOTATION DETAILS / 工程报价方案】
+• Project / Application: ${proj}
+• Client Company: ${comp}
+• Quantity: ${calc.qty.toLocaleString()} pcs / sqm
+• Dimensions: ${size}
+• Material Composition: ${mat}
+• Surface Finish & Treatment: ${print}
+
+【PRICING & COMMERCIAL TERMS】
+• Unit Price: ${calc.currency} ${calc.unitQuoteTargetCurr.toFixed(2)} / unit
+• Total Amount: ${calc.currency} ${calc.totalQuoteTargetCurr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+• Trade Terms: ${incoterm}
+• Lead Time: ${lead} after shop drawing/sample approval
+• Payment Terms: ${pay}
+• Quotation Validity: ${validity}
+
+【TECHNICAL & QUALITY COMMITMENT】
+- Certified under international architectural standards with full mill test certificates provided.
+- Pre-shipment quality inspection and fumigated seaworthy wooden crate packaging included.
+
+Please feel free to contact us if you need any further customization or adjustments.
+
+Best regards,
+Sales & Engineering Team
+Archino Building Materials Technology Co., Ltd. (阿尔基诺建材科技)
+==================================================`;
+
+      navigator.clipboard.writeText(quoteText).then(() => {
+        showToast('客户报价文案已复制到剪贴板！');
+      }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = quoteText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('客户报价文案已复制到剪贴板！');
+      });
+    }
+
+    // Load sample presets
+    function loadSampleData() {
+      document.getElementById('cust-company').value = "Metro Construction & Build Group";
+      document.getElementById('cust-contact').value = "David Miller / RFQ-US-8802";
+      document.getElementById('cust-country').value = "United States";
+      document.getElementById('cust-project').value = "商业幕墙UHPC挂板与外立面装饰构件";
+      document.getElementById('cust-focus').value = "要求高抗折强度(≥18MPa)，抗冻融循环测试报告，海运防损木箱包装。";
+
+      document.getElementById('prod-name-1').value = "定制UHPC外墙装饰挂板";
+      document.getElementById('prod-sku-1').value = "AR-UHPC-2026-01";
+      document.getElementById('prod-cat-1').value = "幕墙配件与挂板 (100005265)";
+      document.getElementById('prod-qty-1').value = 500;
+      document.getElementById('cost-qty').value = 500;
+
+      document.getElementById('mat-outer').value = "超高性能混凝土 (UHPC)";
+      document.getElementById('mat-middle').value = "抗裂不锈钢纤维";
+      document.getElementById('mat-inner').value = "纳米防水自洁涂层";
+      document.getElementById('mat-weight').value = "抗折强度 ≥18MPa / 密度 2450 kg/m³";
+      document.getElementById('mat-structure').value = "背栓式干挂结构，预埋一体件";
+      document.getElementById('mat-tolerance').value = "±1.5mm";
+      document.getElementById('spec-outer-size').value = "1200×600×25mm";
+      document.getElementById('spec-inner-size').value = "有效安装跨距 1150×550mm";
+      document.getElementById('spec-holder').value = "外立面幕墙龙骨挂接 (横向角钢龙骨)";
+      document.getElementById('spec-craft').value = "模具浇筑、高温蒸汽养护、数控精修切边、纳米防渗喷涂";
+      document.getElementById('spec-accessary').value = "304不锈钢背栓、专属铝合金挂件、耐候密封胶条";
+
+      document.getElementById('art-version').value = "DWG-AR-2026-001";
+      document.getElementById('cost-material').value = 45.00;
+      document.getElementById('cost-labor').value = 25.00;
+      document.getElementById('cost-print').value = 10.00;
+      document.getElementById('cost-package').value = 5.00;
+      document.getElementById('cost-qc').value = 2.00;
+      document.getElementById('cost-loss-rate').value = 5;
+      document.getElementById('cost-sample').value = 500;
+      document.getElementById('cost-plate').value = 1000;
+      document.getElementById('cost-mold').value = 0;
+      document.getElementById('cost-other-fixed').value = 0;
+
+      document.getElementById('biz-margin-rate').value = 28;
+      document.getElementById('biz-currency').value = "USD";
+      document.getElementById('biz-fx-rate').value = 7.20;
+      document.getElementById('biz-shipping-fee').value = 4500;
+      document.getElementById('biz-tax-fee').value = 0;
+      document.getElementById('biz-incoterm').value = "CIF";
+      document.getElementById('biz-lead-time').value = "30天";
+      document.getElementById('biz-valid-days').value = "15天";
+      document.getElementById('biz-payment-term').value = "T/T 30%定金，出厂验货合格后见提单副本付70%尾款";
+
+      calculateQuote();
+      showToast('已恢复阿尔基诺建材预设示例数据！');
+    }
+
+    function restoreDefaultParams() {
+      loadSampleData();
+    }
+
+    function resetForm() {
+      document.querySelectorAll('input[type="text"]').forEach(input => input.value = '');
+      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '0');
+      document.getElementById('cost-qty').value = '500';
+      document.getElementById('prod-qty-1').value = '500';
+      document.getElementById('biz-margin-rate').value = '28';
+      document.getElementById('biz-fx-rate').value = '7.20';
+      calculateQuote();
+      showToast('表单已清空！');
+    }
+
+    function addProductItem() {
+      productItemCounter++;
+      const container = document.getElementById('product-items-container');
+      const itemHtml = document.createElement('div');
+      itemHtml.className = "p-4 bg-slate-50/70 rounded-lg border border-slate-200 text-xs relative group";
+      itemHtml.id = `prod-item-${productItemCounter}`;
+      itemHtml.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 产品明细 ${productItemCounter}
+          </span>
+          <button onclick="removeProductItem(${productItemCounter})" class="text-slate-400 hover:text-rose-600 text-[11px] flex items-center gap-0.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            <span>删除</span>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-slate-600 mb-1">产品名称 <span class="text-rose-500">*</span></label>
+            <input type="text" value="定制建材构件 ${productItemCounter}" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+          </div>
+          <div>
+            <label class="block text-slate-600 mb-1">SKU 编号</label>
+            <input type="text" value="AR-CUSTOM-00${productItemCounter}" class="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+          </div>
+          <div>
+            <label class="block text-slate-600 mb-1">产品大类</label>
+            <select class="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+              <option value="幕墙配件与挂板 (100005265)" selected>幕墙配件与UHPC挂板</option>
+              <option value="建筑板材与复合板 (100005320)">建筑板材与复合板</option>
+              <option value="门与工业车库门系统 (1305)">门与工业车库门系统</option>
+              <option value="金属建材与铝单板 (1320)">金属建材与铝单板</option>
+              <option value="活动房屋与钢结构 (31)">活动房屋与钢结构</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-600 mb-1">定制路径</label>
+            <select class="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+              <option value="轻定制 (表面涂装/打标)" selected>轻定制 (表面涂装/打标)</option>
+              <option value="深度定制 (专版开模/结构)">深度定制 (专版开模/结构)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-600 mb-1">采购数量 (件/平米)</label>
+            <input type="number" value="500" min="1" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 input-highlight focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-semibold">
+          </div>
+        </div>
+      `;
+      container.appendChild(itemHtml);
+      showToast(`已添加产品明细 ${productItemCounter}`);
+    }
+
+    function removeProductItem(id) {
+      const item = document.getElementById(`prod-item-${id}`);
+      if (item) {
+        item.remove();
+        calculateQuote();
+        showToast('已移除产品明细');
+      }
+    }
+
+    // CRM Database & Auto-matching Engine
+    const defaultCrmDatabase = [
+      {
+        id: "CRM-2026-001",
+        company: "Metro Construction & Build Group",
+        contact: "David Miller / RFQ-US-8802",
+        country: "United States",
+        project: "商业幕墙UHPC挂板与外立面装饰构件",
+        deadline: "2026-12-20",
+        focus: "要求高抗折强度(≥18MPa)，抗冻融循环测试报告，海运防损木箱包装。",
+        currency: "USD",
+        incoterm: "CIF",
+        leadTime: "30天",
+        validDays: "15天",
+        payment: "T/T 30%定金，提单副本见款付70%",
+        productName: "定制UHPC外墙装饰挂板",
+        sku: "AR-UHPC-2026-01",
+        qty: 500,
+        matOuter: "超高性能混凝土 (UHPC)",
+        matMiddle: "抗裂不锈钢纤维",
+        matInner: "纳米防水自洁涂层",
+        outerSize: "1200×600×25mm"
+      },
+      {
+        id: "CRM-2026-002",
+        company: "NIW Distribution Ltd.",
+        contact: "Rajesh Kumar / RFQ-IN-9014",
+        country: "India",
+        project: "工业园区车库门及快速卷帘门五金系统",
+        deadline: "2026-11-30",
+        focus: "重点关注 Break-up Cost 详细分拆方案，电机与导轨需CE/ISO认证。",
+        currency: "USD",
+        incoterm: "FOB",
+        leadTime: "20天",
+        validDays: "10天",
+        payment: "L/C at sight 信用证即期付款",
+        productName: "工业提升门/车库门系统",
+        sku: "AR-GARAGE-PRO-02",
+        qty: 100,
+        matOuter: "高强度镀锌彩钢板",
+        matMiddle: "高密度聚氨酯发泡40mm",
+        matInner: "抗风加强筋",
+        outerSize: "3000×2500×42mm"
+      },
+      {
+        id: "CRM-2026-003",
+        company: "Alvin Infrastructure & Engineering",
+        contact: "Alvin Santos / RFQ-PH-4412",
+        country: "Philippines",
+        project: "市政车牌识别一体化车道闸与门禁工程",
+        deadline: "2026-10-31",
+        focus: "要求实测高清车牌识别抓拍视频、夜间补光效果测试，提供工程图纸确认。",
+        currency: "USD",
+        incoterm: "FOB",
+        leadTime: "15天",
+        validDays: "7天",
+        payment: "T/T 50%定金，发货前50%",
+        productName: "智能车牌识别一体机与道闸",
+        sku: "AR-BARRIER-ALVIN-01",
+        qty: 50,
+        matOuter: "2.0mm冷轧镀锌钢板烤漆",
+        matMiddle: "工业级无刷变频电机",
+        matInner: "高清夜视识别模组",
+        outerSize: "350×320×1050mm"
+      },
+      {
+        id: "CRM-2026-004",
+        company: "Pacific Architectural Facades",
+        contact: "Oliver Smith / RFQ-AU-3021",
+        country: "Australia",
+        project: "高端别墅定制雕花铝单板及外遮阳系统",
+        deadline: "2026-12-05",
+        focus: "氟碳三涂(PVDF)涂层20年质保，提供AS/NZS澳洲建筑标准报告。",
+        currency: "AUD",
+        incoterm: "FOB",
+        leadTime: "28天",
+        validDays: "14天",
+        payment: "T/T 30%定金，验货合格出运前70%",
+        productName: "氟碳铝单板幕墙",
+        sku: "AR-ALUM-FACADE-03",
+        qty: 800,
+        matOuter: "3003-H24优质铝合金",
+        matMiddle: "氟碳PVDF三涂烤漆",
+        matInner: "加强筋与角码配件",
+        outerSize: "1500×3000×3.0mm"
+      },
+      {
+        id: "CRM-2026-005",
+        company: "Apex Building Solutions UK",
+        contact: "James Taylor / RFQ-UK-1105",
+        country: "United Kingdom",
+        project: "装配式太空舱移动度假屋与轻钢结构",
+        deadline: "2026-12-31",
+        focus: "整箱吊装海运标准，CE认证电路系统，Low-E中空隔音玻璃。",
+        currency: "GBP",
+        incoterm: "CIF",
+        leadTime: "35天",
+        validDays: "15天",
+        payment: "T/T 40%定金，发货前付清",
+        productName: "装配式太空舱民宿",
+        sku: "AR-CABIN-UK-05",
+        qty: 10,
+        matOuter: "航空铝合金+镀锌钢骨架",
+        matMiddle: "聚氨酯一体发泡保温",
+        matInner: "全景双层中空Low-E钢化玻璃",
+        outerSize: "8500×3300×3200mm"
+      }
+    ];
+      {
+        id: "CRM-2026-002",
+        company: "Metro Construction & Build Group",
+        contact: "David Miller / RFQ-US-8802",
+        country: "United States",
+        project: "商业幕墙UHPC挂板与外立面装饰构件",
+        deadline: "2026-12-20",
+        focus: "要求高抗折强度(≥18MPa)，抗冻融循环测试报告，海运防损木箱包装。",
+        currency: "USD",
+        incoterm: "CIF",
+        leadTime: "30天",
+        validDays: "15天",
+        payment: "T/T 30%定金，提单副本见款付70%",
+        productName: "定制UHPC外墙装饰挂板",
+        sku: "AR-UHPC-2026-01",
+        qty: 500,
+        matOuter: "超高性能混凝土 (UHPC)",
+        matMiddle: "抗裂不锈钢纤维",
+        matInner: "纳米防水自洁涂层",
+        outerSize: "1200×600×25mm"
+      },
+      {
+        id: "CRM-2026-003",
+        company: "NIW Distribution Ltd.",
+        contact: "Rajesh Kumar / RFQ-IN-9014",
+        country: "India",
+        project: "工业园区车库门及快速卷帘门五金系统",
+        deadline: "2026-11-30",
+        focus: "重点关注 Break-up Cost 详细分拆方案，电机与导轨需CE/ISO认证。",
+        currency: "USD",
+        incoterm: "FOB",
+        leadTime: "20天",
+        validDays: "10天",
+        payment: "L/C at sight 信用证即期付款",
+        productName: "工业提升门/车库门系统",
+        sku: "AR-GARAGE-PRO-02",
+        qty: 100,
+        matOuter: "高强度镀锌彩钢板",
+        matMiddle: "高密度聚氨酯发泡40mm",
+        matInner: "抗风加强筋",
+        outerSize: "3000×2500×42mm"
+      },
+      {
+        id: "CRM-2026-004",
+        company: "Alvin Infrastructure & Engineering",
+        contact: "Alvin Santos / RFQ-PH-4412",
+        country: "Philippines",
+        project: "市政车牌识别一体化车道闸与门禁工程",
+        deadline: "2026-10-31",
+        focus: "要求实测高清车牌识别抓拍视频、夜间补光效果测试，提供工程图纸确认。",
+        currency: "USD",
+        incoterm: "FOB",
+        leadTime: "15天",
+        validDays: "7天",
+        payment: "T/T 50%定金，发货前50%",
+        productName: "智能车牌识别一体机与道闸",
+        sku: "AR-BARRIER-ALVIN-01",
+        qty: 50,
+        matOuter: "2.0mm冷轧镀锌钢板烤漆",
+        matMiddle: "工业级无刷变频电机",
+        matInner: "高清夜视识别模组",
+        outerSize: "350×320×1050mm"
+      },
+      {
+        id: "CRM-2026-005",
+        company: "Pacific Architectural Facades",
+        contact: "Oliver Smith / RFQ-AU-3021",
+        country: "Australia",
+        project: "高端别墅定制雕花铝单板及外遮阳系统",
+        deadline: "2026-12-05",
+        focus: "氟碳三涂(PVDF)涂层20年质保，提供AS/NZS澳洲建筑标准报告。",
+        currency: "AUD",
+        incoterm: "FOB",
+        leadTime: "28天",
+        validDays: "14天",
+        payment: "T/T 30%定金，验货合格出运前70%",
+        productName: "氟碳铝单板幕墙",
+        sku: "AR-ALUM-FACADE-03",
+        qty: 800,
+        matOuter: "3003-H24优质铝合金",
+        matMiddle: "氟碳PVDF三涂烤漆",
+        matInner: "加强筋与角码配件",
+        outerSize: "1500×3000×3.0mm"
+      }
+    ];
+
+    function getCrmList() {
+      try {
+        const saved = localStorage.getItem('archino_crm_clients');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+      return defaultCrmDatabase;
+    }
+
+    function handleCustomerInput(val) {
+      const list = getCrmList();
+      const dropdown = document.getElementById('crm-suggestions');
+      const query = (val || '').trim().toLowerCase();
+
+      let matches = list;
+      if (query) {
+        matches = list.filter(item => 
+          item.company.toLowerCase().includes(query) || 
+          item.contact.toLowerCase().includes(query) || 
+          item.country.toLowerCase().includes(query) ||
+          item.project.toLowerCase().includes(query)
+        );
+      }
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = `
+          <div class="p-3 text-center text-slate-400 text-xs">
+            未找到匹配的CRM客户档案
+            <div class="mt-1">
+              <button onclick="saveCurrentToCrm()" class="text-blue-600 hover:underline font-medium">+ 将 "${val}" 作为新客户收录至CRM</button>
+            </div>
+          </div>
+        `;
+        dropdown.classList.remove('hidden');
+        return;
+      }
+
+      dropdown.innerHTML = matches.map(c => `
+        <div onclick="selectCrmCustomer('${c.id}')" class="p-2.5 hover:bg-blue-50/80 cursor-pointer transition flex items-start justify-between gap-2">
+          <div>
+            <div class="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+              <span>${c.company}</span>
+              <span class="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">${c.country}</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">${c.contact} · ${c.project}</div>
+          </div>
+          <span class="text-[10px] font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 flex-shrink-0">${c.id}</span>
+        </div>
+      `).join('');
+      dropdown.classList.remove('hidden');
+
+      // Auto exact match if user typed full name
+      const exactMatch = list.find(item => item.company.toLowerCase() === query);
+      if (exactMatch && document.activeElement !== document.getElementById('cust-company')) {
+        selectCrmCustomer(exactMatch.id);
+      }
+    }
+
+    function selectCrmCustomer(id) {
+      const list = getCrmList();
+      const customer = list.find(c => c.id === id);
+      if (!customer) return;
+
+      document.getElementById('cust-company').value = customer.company;
+      document.getElementById('cust-contact').value = customer.contact;
+      document.getElementById('cust-country').value = customer.country;
+      document.getElementById('cust-project').value = customer.project;
+      if (customer.deadline) document.getElementById('cust-deadline').value = customer.deadline;
+      document.getElementById('cust-focus').value = customer.focus || '';
+
+      if (customer.currency) document.getElementById('biz-currency').value = customer.currency;
+      if (customer.incoterm) document.getElementById('biz-incoterm').value = customer.incoterm;
+      if (customer.leadTime) document.getElementById('biz-lead-time').value = customer.leadTime;
+      if (customer.validDays) document.getElementById('biz-valid-days').value = customer.validDays;
+      if (customer.payment) document.getElementById('biz-payment-term').value = customer.payment;
+
+      if (customer.productName && document.getElementById('prod-name-1')) {
+        document.getElementById('prod-name-1').value = customer.productName;
+      }
+      if (customer.sku && document.getElementById('prod-sku-1')) {
+        document.getElementById('prod-sku-1').value = customer.sku;
+      }
+      if (customer.qty) {
+        document.getElementById('cost-qty').value = customer.qty;
+        if (document.getElementById('prod-qty-1')) document.getElementById('prod-qty-1').value = customer.qty;
+      }
+
+      if (customer.matOuter && document.getElementById('mat-outer')) document.getElementById('mat-outer').value = customer.matOuter;
+      if (customer.matMiddle && document.getElementById('mat-middle')) document.getElementById('mat-middle').value = customer.matMiddle;
+      if (customer.matInner && document.getElementById('mat-inner')) document.getElementById('mat-inner').value = customer.matInner;
+      if (customer.outerSize && document.getElementById('spec-outer-size')) document.getElementById('spec-outer-size').value = customer.outerSize;
+
+      // Show match badge
+      document.getElementById('crm-match-status').classList.remove('hidden');
+      document.getElementById('crm-match-text').textContent = `已自动匹配 CRM: ${customer.company} (${customer.id})`;
+
+      // Hide dropdown
+      document.getElementById('crm-suggestions').classList.add('hidden');
+
+      calculateQuote();
+      showToast(`已成功匹配客户: ${customer.company}`);
+    }
+
+    function clearCrmMatch() {
+      document.getElementById('crm-match-status').classList.add('hidden');
+    }
+
+    function toggleCrmList() {
+      const dropdown = document.getElementById('crm-suggestions');
+      if (dropdown.classList.contains('hidden')) {
+        handleCustomerInput('');
+      } else {
+        dropdown.classList.add('hidden');
+      }
+    }
+
+    function saveCurrentToCrm() {
+      const company = document.getElementById('cust-company').value.trim();
+      if (!company) {
+        showToast('请先输入客户公司名称！');
+        return;
+      }
+      const list = getCrmList();
+      const existingIdx = list.findIndex(c => c.company.toLowerCase() === company.toLowerCase());
+      const newId = existingIdx >= 0 ? list[existingIdx].id : `CRM-2026-${String(list.length + 1).padStart(3, '0')}`;
+
+      const newRecord = {
+        id: newId,
+        company: company,
+        contact: document.getElementById('cust-contact').value,
+        country: document.getElementById('cust-country').value,
+        project: document.getElementById('cust-project').value,
+        deadline: document.getElementById('cust-deadline').value,
+        focus: document.getElementById('cust-focus').value,
+        currency: document.getElementById('biz-currency').value,
+        incoterm: document.getElementById('biz-incoterm').value,
+        leadTime: document.getElementById('biz-lead-time').value,
+        validDays: document.getElementById('biz-valid-days').value,
+        payment: document.getElementById('biz-payment-term').value,
+        productName: document.getElementById('prod-name-1') ? document.getElementById('prod-name-1').value : '',
+        sku: document.getElementById('prod-sku-1') ? document.getElementById('prod-sku-1').value : '',
+        qty: parseFloat(document.getElementById('cost-qty').value) || 1000,
+        matOuter: document.getElementById('mat-outer').value,
+        matMiddle: document.getElementById('mat-middle').value,
+        matInner: document.getElementById('mat-inner').value,
+        outerSize: document.getElementById('spec-outer-size').value
+      };
+
+      if (existingIdx >= 0) {
+        list[existingIdx] = newRecord;
+      } else {
+        list.push(newRecord);
+      }
+
+      try {
+        localStorage.setItem('archino_crm_clients', JSON.stringify(list));
+      } catch (e) {}
+
+      document.getElementById('crm-match-status').classList.remove('hidden');
+      document.getElementById('crm-match-text').textContent = `已收录/更新至 CRM 库 (${newId})`;
+      document.getElementById('crm-suggestions').classList.add('hidden');
+      showToast(`客户档案已保存至 CRM 系统 (${newId})！`);
+    }
+
+    // Store Categories Sync & Mapping Engine (Alibaba.com Bound Store: Henan Arkino Building Materials)
+    const storeCategoryTemplates = {
+      "幕墙配件与挂板 (100005265)": {
+        name: "定制UHPC外墙装饰挂板",
+        sku: "AR-UHPC-2026-01",
+        matOuter: "超高性能混凝土 (UHPC)",
+        matMiddle: "抗裂不锈钢纤维",
+        matInner: "纳米防水自洁涂层",
+        outerSize: "1200×600×25mm",
+        craft: "模具浇筑、高温蒸汽养护、纳米喷涂、预埋背栓",
+        qty: 500, mat: 45.0, labor: 25.0, print: 10.0, pack: 5.0, loss: 5, fixed: 1500, ship: 4500, margin: 28
+      },
+      "建筑板材与复合板 (100005320)": {
+        name: "金属雕花外墙保温一体板",
+        sku: "AR-PANEL-2026-02",
+        matOuter: "氟碳烤漆合金镀铝锌钢板",
+        matMiddle: "阻燃B1级硬质聚氨酯发泡",
+        matInner: "铝箔防潮隔热反射层",
+        outerSize: "3800×380×16mm",
+        craft: "连续冷弯压花、高温高压发泡复合、定尺裁切",
+        qty: 1000, mat: 30.0, labor: 18.0, print: 8.0, pack: 4.0, loss: 4, fixed: 800, ship: 3500, margin: 25
+      },
+      "门与工业车库门系统 (1305)": {
+        name: "工业提升门/高端车库门系统",
+        sku: "AR-GARAGE-2026-03",
+        matOuter: "0.45mm优质热浸镀锌彩钢板",
+        matMiddle: "40mm高密度无氟聚氨酯发泡",
+        matInner: "工业级伺服电机+加厚抗风扭簧导轨",
+        outerSize: "3000×2500×42mm",
+        craft: "辊压成型、防夹手密闭结构、静电喷涂、安全气囊保护",
+        qty: 100, mat: 280.0, labor: 120.0, print: 30.0, pack: 40.0, loss: 3, fixed: 2000, ship: 5000, margin: 26
+      },
+      "金属建材与铝单板 (1320)": {
+        name: "氟碳雕花铝单板幕墙",
+        sku: "AR-ALUM-2026-04",
+        matOuter: "3003-H24优质高强度铝合金板",
+        matMiddle: "美国PPG/阿克苏氟碳PVDF三涂三烤",
+        matInner: "焊接防变形加强筋与一体角码",
+        outerSize: "1500×3000×3.0mm",
+        craft: "数控CNC雕刻冲孔、折弯成型、氩弧焊、氟碳喷涂",
+        qty: 800, mat: 65.0, labor: 35.0, print: 20.0, pack: 10.0, loss: 4, fixed: 1200, ship: 6000, margin: 26
+      },
+      "活动房屋与钢结构 (31)": {
+        name: "装配式太空舱移动民宿/集装箱房",
+        sku: "AR-CABIN-2026-05",
+        matOuter: "热镀锌加厚钢结构骨架+航空铝合金外壳",
+        matMiddle: "聚氨酯发泡全保温隔音层+防潮隔汽膜",
+        matInner: "全景中空Low-E钢化玻璃+智能全屋集成系统",
+        outerSize: "8500×3300×3200mm",
+        craft: "工厂一体化装配、隐藏式给排水强弱电、整体吊装结构",
+        qty: 10, mat: 18000.0, labor: 8000.0, print: 2000.0, pack: 3000.0, loss: 2, fixed: 5000, ship: 12000, margin: 30
+      },
+      "隔热与防火耐火材料 (100005291)": {
+        name: "纳米气凝胶防火隔热毡",
+        sku: "AR-AERO-2026-06",
+        matOuter: "耐高温无碱玻璃纤维增强基材",
+        matMiddle: "二氧化硅纳米微孔气凝胶 (导热≤0.018W/m·K)",
+        matInner: "A1级防火阻燃防水复合封装膜",
+        outerSize: "1500×1000×10mm",
+        craft: "超临界干燥、无机纤维复合浸渍、精密分切",
+        qty: 1200, mat: 55.0, labor: 20.0, print: 5.0, pack: 5.0, loss: 3, fixed: 600, ship: 2500, margin: 28
+      },
+      "砖石材料与砌筑砂浆 (100005264)": {
+        name: "生态透水砖/PC仿石人造铺路石",
+        sku: "AR-STONE-2026-07",
+        matOuter: "精选天然花岗岩/玄武岩微骨料",
+        matMiddle: "P.O 52.5高标号特种硅酸盐水泥",
+        matInner: "高分子聚合物强效粘结外加剂",
+        outerSize: "300×150×50mm",
+        craft: "高频压滤振捣成型、二次布料水洗仿石纹理、恒温养护",
+        qty: 5000, mat: 3.50, labor: 1.80, print: 0.50, pack: 0.60, loss: 5, fixed: 500, ship: 3000, margin: 22
+      }
+    };
+
+    function syncStoreCategories() {
+      const banner = document.getElementById('store-sync-banner');
+      banner.classList.remove('bg-blue-50/70', 'border-blue-200/80');
+      banner.classList.add('bg-emerald-50', 'border-emerald-300');
+      
+      showToast('正在从国际站店铺「Henan Arkino」抓取类目树...');
+      setTimeout(() => {
+        showToast('✅ 成功从后台绑定店铺抓取 7 大建材产品类目！');
+      }, 500);
+    }
+
+    function handleCategoryChange(catValue, itemIndex) {
+      const tpl = storeCategoryTemplates[catValue];
+      if (!tpl) return;
+
+      if (document.getElementById(`prod-name-${itemIndex}`)) {
+        document.getElementById(`prod-name-${itemIndex}`).value = tpl.name;
+      }
+      if (document.getElementById(`prod-sku-${itemIndex}`)) {
+        document.getElementById(`prod-sku-${itemIndex}`).value = tpl.sku;
+      }
+      if (document.getElementById(`prod-qty-${itemIndex}`)) {
+        document.getElementById(`prod-qty-${itemIndex}`).value = tpl.qty;
+      }
+      document.getElementById('cost-qty').value = tpl.qty;
+
+      if (document.getElementById('mat-outer')) document.getElementById('mat-outer').value = tpl.matOuter;
+      if (document.getElementById('mat-middle')) document.getElementById('mat-middle').value = tpl.matMiddle;
+      if (document.getElementById('mat-inner')) document.getElementById('mat-inner').value = tpl.matInner;
+      if (document.getElementById('spec-outer-size')) document.getElementById('spec-outer-size').value = tpl.outerSize;
+      if (document.getElementById('spec-craft')) document.getElementById('spec-craft').value = tpl.craft;
+
+      document.getElementById('cost-material').value = tpl.mat.toFixed(2);
+      document.getElementById('cost-labor').value = tpl.labor.toFixed(2);
+      document.getElementById('cost-print').value = tpl.print.toFixed(2);
+      document.getElementById('cost-package').value = tpl.pack.toFixed(2);
+      document.getElementById('cost-loss-rate').value = tpl.loss;
+      document.getElementById('cost-plate').value = tpl.fixed;
+      document.getElementById('biz-shipping-fee').value = tpl.ship;
+      document.getElementById('biz-margin-rate').value = tpl.margin;
+
+      calculateQuote();
+      showToast(`已加载「${catValue.split(' ')[0]}」产品标准工艺与核算参数`);
+    }
+
+    // Close CRM dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('crm-suggestions');
+      const input = document.getElementById('cust-company');
+      if (dropdown && !dropdown.contains(e.target) && e.target !== input) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    // Auto initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      calculateQuote();
+    });
+  </script>
+</body>
+</html>
